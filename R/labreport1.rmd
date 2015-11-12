@@ -1,0 +1,164 @@
+---
+title: "Computer Lab 1"
+author: "Thomas Zhang"
+date: 2015-11-10
+output: 
+  pdf_document: 
+    fig_height: 4
+---
+
+We have a data set of Womens national running records from all nations for seven different distances. Some descriptive statistics for the records for each running distance is given by
+
+```{r,echo=FALSE,message=FALSE}
+library(rgl)
+library(scatterplot3d)
+library(ggplot2)
+www = "http://www.ida.liu.se/~732A37/T1-9.dat"
+data <- read.delim(www, header = FALSE, sep="\t")
+nations <- as.character(data[,1])
+data <- data[,-1]
+colnamez <- c("100m(s)","200m(s)","400m(s)",
+                    "800m(min)","1500m(min)","3000m(min)","Mara(min)")
+colnames(data) <- colnamez
+col_mu <- round(colMeans(data),3)
+
+col_sigmasquared<- apply(data,2,var)
+
+mins <- apply(data,2,min)
+maxs <- apply(data,2,max)
+print('Means')
+col_mu
+paste("standard deviations:" )
+round(sqrt(col_sigmasquared),3)
+paste("Min values:" )
+mins
+paste("Max values:" )
+maxs
+```
+
+We plot the distributions of the records of each distance as a box plot and a scatter plot and we study the quantile-quantile plot (Q-Q plot) of each distance.
+
+```{r,echo=FALSE,fig.pos="center",fig.height=9,fig.width=10}
+par(mfrow = c(2,4))
+for(i in 1:3){
+boxplot(data[,i],ylab="seconds",main=c("Records for distance:",
+                                           colnames(data)[i]))
+}
+for(j in 4:7){
+boxplot(data[,j],ylab="minutes",main=c("Records for distance:",
+                                           colnames(data)[j]))
+}
+plot.new()
+
+```
+
+```{r,echo=FALSE,fig.pos="center",fig.height=6,fig.width=10}
+par(mfrow = c(2,4))
+for(i in 1:length(data)){
+  plot(seq_along(data[,i]),data[,i],main=c("Records for distance:",
+                                           colnames(data)[i]),xlab="",ylab="time unit")
+}
+
+plot.new()
+for(i in 1:length(data)){
+  qqnorm(data[,i],main=c("Q-Q plot of records",
+                                           colnames(data)[i]))
+  qqline(data[,i])
+}
+par(mfrow = c(1,1))
+covmatr <- var(data)
+corrmatr <- cor(data)
+
+```
+
+The box and scatter plots of records for differenct distances indicate that there are some outliers (nations for which the record time is bad). The Q-Q plots show that for shorter distances, the record distributions are approximately normally distributed, but with increasing distance a normal distribution of record times describes the data less and less well.
+
+Let us take a look at the covariance and correlation matrices for the records of the seven running distances.
+
+```{r,echo=FALSE}
+print("Covariance matrix:")
+signif(covmatr,3)
+print("Correlation matrix:")
+signif(corrmatr,3)
+```
+
+We see that the records for almost every distance is heavily correlated with the records of almost every other distance. Covariance varies in magnitude greatly while correlation is between zero and one.
+
+We now scatter plot the records of different distances against each other.
+
+```{r,echo=FALSE,fig.pos="center",fig.height=12,fig.width=15}
+pairs(data)
+```
+
+We see that there is significant positive correlation between many of the records, which indicate that countries which perform well in one distance of running has a good chance of performing well in another distance as well. There are also a few data points which show particularly poor records, as indicated previously, and these could be considered outliers. 
+
+Let us illustrate that further with a 3D scatter plot, where we plot the 800 m records against the 200 m and 400 m records.
+
+![A plot](C:/Users/Dator/Documents/R_HW/732A37/R/3dplot.jpg)
+
+```{r,echo=FALSE,fig.pos="center",eval=FALSE}
+for(i in 1:(length(data)-2)){
+  plot3d(data[,i],data[,i+1],data[,i+2],
+                xlab="even smaller distance record",ylab="smaller distance record",
+         zlab="record",col="red",size=3,type="s")
+}
+
+```
+
+It can be seen that the majority of data points (countries) form a cluster pointing diagonally through the cube, which shows positive correlation between the records. The outliers are clearly identfied here as well. 
+
+Let us try and see which countries are performing extremely badly in terms of womens running records.
+
+```{r,echo=FALSE,fig.pos="center"}
+par(mfrow = c(1,1))
+plot(data[,3],data[,4],pch="", main="Country comparison",xlab=colnames(data)[3],ylab=colnames(data)[4])
+text(data[,3],data[,4],labels=nations)
+plot(data[,1],data[,7],pch="", main="Country comparison",xlab=colnames(data)[1],ylab=colnames(data)[7])
+text(data[,1],data[,7],labels=nations)
+plot(data[,5],data[,6],pch="", main="Country comparison",xlab=colnames(data)[5],ylab=colnames(data)[6])
+text(data[,5],data[,6],labels=nations)
+```
+
+We see a pattern where the pacific island nations of Papua New Guinea, Samoa and Cook Islands are by far the worst performers in most distance categories. I suggest they are so extreme(ly bad) because they are small island nations with limited human talent pools and a culture which do not emphasize fast running. Also their professional runner training organizations are probably lacking in all respects compared to those of rich and/or large nations.
+
+Let us now compute the euclidean distance, the standardized euclidean distance and the Mahalanobis distance from the center of the observations of the records and find out which are the five most extreme nations (fartest from the center of observations) in each case.
+
+```{r, echo=FALSE,fig.pos="center"}
+centerdata <- data - matrix(rep(col_mu, dim(data)[1]),ncol=7,byrow=TRUE)
+centerdata <- as.matrix(centerdata)
+euclideandist <- c()
+varianceadjusteddists <- c()
+V <- diag(col_sigmasquared)
+covarianceadjusteddists <-c()
+for(i in 1:dim(data)[1]){
+  euclideandist <- c( euclideandist, sqrt(sum(centerdata[i,] * centerdata[i,])))
+  varianceadjusteddists <- c( varianceadjusteddists,
+            sqrt(centerdata[i,] %*% solve(V) %*% centerdata[i,]))
+  covarianceadjusteddists <- c( covarianceadjusteddists,
+            sqrt(centerdata[i,] %*% solve(covmatr) %*% centerdata[i,]))
+}
+
+plot(euclideandist,pch="", main="Country comparison",ylab="Euclidean distance from center")
+text(euclideandist,labels=nations)
+plot(varianceadjusteddists,pch="",
+     main="Country comparison",ylab="Variance adjusted distance from center")
+text(varianceadjusteddists,labels=nations)
+plot(covarianceadjusteddists,pch="",
+     main="Country comparison",ylab="Covariance adjusted distance from center")
+text(covarianceadjusteddists,labels=nations)
+```
+
+For all three distance measures we note that the three pacific island nations PNG, SAM and COK are among the most extreme nations. In the case of euclidean distance measure a distant fourth most extreme we find Bermuda (BER) and fifth we find Great Britain (GBR). Keep in mind tough, we have not compensated for the different magnitudes of records yet by compensating for the variance experienced by the records for each distance.
+
+In the standardized euclidean distance measure case, where variance of records in each distance is compensated for, we find three pacific islanders, USA and Singapore (SIN) to be the most extreme. 
+
+In the Mahalanobis distance measure case, where we compensate for covariance of records, we find beside three pacific islanders, North Korea (KOR, N) to be very extreme record nation. A distant fifth we find Mexico (MEX). Given the nature of North Korea, one can not rule out the case that they have fabricated running records.
+
+
+\pagebreak
+
+### Appendix - R-Code
+```{r code=readLines(knitr::purl("C:/Users/Dator/Documents/R_HW/732A37/R/labreport1.rmd", documentation = 0)), eval = FALSE}
+
+
+```
