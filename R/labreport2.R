@@ -1,17 +1,3 @@
----
-title: "Computer Lab 2"
-author: "Thomas Zhang"
-date: 2015-11-24
-output: 
-  pdf_document: 
-    fig_height: 4
----
-
-## Assignment 1
-
-We calculate the chi-square test statistic for seven degrees of freedom at 0.1% significance level and compare them to the squared Mahalanobis distances of countries from the sample mean vector in order to determine which countries can be considered outliers.
-
-```{r,echo=FALSE,message=FALSE}
 library(outliers)
 library(car)
 www = "http://www.ida.liu.se/~732A37/T1-9.dat"
@@ -49,15 +35,6 @@ for(i in 1:dim(data)[1]){
   }
 }
 
-```
-
-North Korea probably does not perform very extremely (i.e. different from the sample mean) in any one distance record, but their records must not exhibit the same covariance with each other as that of other nations. One interpretation is that their training regimen produced vastly different results from that of most countries. Another interpretation could be that the records are fabricated by somebody without knowledge of running record covariances.
-
-## Assignment 2
-
-Based on the data given, we plot the 95% confidence ellipse for the tail length and wing length population means for female hook-billed kites.
-
-```{r,echo=FALSE,fig.pos="center"}
 alpha <- 0.95
 col_mu2 <- colMeans(data2)
 vardata2 <-var(data2)
@@ -89,15 +66,6 @@ plot(x, y, type = "l",main=c("Wing length (mm) vs tail length (mm) of female hoo
      )
 points(col_mu2[1],col_mu2[2],cex=2,pch="+")
 
-```
-
-According to wikipedia, "Most accipitrids exhibit sexual dimorphism in size, unusually for birds, it is the females that are larger than the males".
-
-We can easily see that our mean vector 95% confidence ellipse barely touches the population means for male hook-billed kites in both variables, so our data may reflect sexual dimorphism in hook-billed kites.
-
-Let us calculate simultaneous confidence intervals and Bonferroni confidence intervals for the population means and compare them.
-
-```{r,echo=FALSE}
 
 simuldista <- sqrt(csquared * quadraa)
 simuldistb <- sqrt(csquared * quadrab)
@@ -113,13 +81,6 @@ paste("Bonferroni confidence interval for Tail length: (",round(col_mu2[1] - bon
       ",",round(col_mu2[1] + bonfdista,2),")")
 paste("Bonferroni confidence interval for Wing length: (",round(col_mu2[2] - bonfdistb,2),
       ",",round(col_mu2[2] + bonfdistb,2),")")
-```
-
-It looks as if the Bonferroni intervals are a little smaller than the simultaneous confidence intervals, and therefore more precise. The downside about using Bonferroni intervals is maybe that we lose the ability to easily make mean confidence intervals around the differences of mean vector components, like we could using simultaneous confidence intervals.
-
-Now we consider whether the data can be described by a bivariate normal distribution by looking at the scatter-plot and Q-Q plots of the data variables. In the Q-Q plots the straight line indicate the theoretical quantile distribution of normally distributed data with the line passing through the first and third quartile sample data points.
-
-```{r, echo=FALSE,fig.pos="center"}
 plot(data2[,1],data2[,2],main="Wing length vs tail length of female hook-billed kites",
      xlab=names(data2)[1],ylab=names(data2)[2],pch="+",ylim=c(230,320),xlim=c(170,220))
 qqnorm(data2[,1],main="Q-Q Plot of tail length")
@@ -127,15 +88,6 @@ qqline(data2[,1])
 qqnorm(data2[,2],main="Q-Q Plot of wing length")
 qqline(data2[,2])
 
-```
-
-The scatter-plot as well as the Q-Q plots suggest that this data is well described by a bivariate normal distribution, and thus it is a viable population model. One can easily imagine an oval shape in the scatter-plot encapsulating all the data points. The Q-Q plot indicate that the data variables are each approximately normally distributed.
-
-## Assignment 3
-
-We are tasked to perform one-way MANOVA analysis on four skull data variables given for three different time periods (populations). We test whether the treatments are all zero at 95% significance level.
-
-```{r,echo=FALSE}
 old <- data3[1:30,1:4]
 oldmu <- colMeans(old)
 mid <- data3[31:60,1:4]
@@ -165,11 +117,6 @@ cat("Test statistic value for three groups and one or more variables for\n",
       "this Wilk's Lambda:",signif(weirdexpr,3))
 cat("F-statistic for above situation at 5% significance level:",
     signif(limit,3))
-```
-
-We see that the test statistic is greater than the F-statistic at the 5% significance level, so we reject the null hypothesis of all treatments are zero vectors. In order to see which variables changes between which time periods, we find the simultaneous confidence intervals of the treatment differences by vector component.
-
-```{r,echo=FALSE}
 p <- 4
 g <- 3
 m <- p * g * (g - 1) / 2
@@ -205,12 +152,4 @@ for(i in 1:4){
   print(paste("between periods 2 and 1 for variable",i,": (",
               signif(simulconfints21[i],3),",",signif(simulconfints21[i+4],3),")"))
 }
-```
-
-We see that the greatest treatment differences probably happen between periods 1 and 3. This is no surprise, as these time periods are furthest apart in time. we also notice that variable one and three (breath and length of skull) are the ones which change their means the most over time.
-
-This data is appropriate for MANOVA, since I believe that the data is multivariate normally distributed since we are talking about data representative of an actual human population, and this type of physiological attributes which the variables consists of are usually normally distributed. It is not certain that the data is randomly sampled, since presumably the more well-off citizens of Ancient Egypt were more well preserved after death and thus stand a higher chance of being included in the data. I do not know whether the populations followed the same covariance matrix.
-
-### Appendix - R-Code
-```{r code=readLines(knitr::purl("C:/Users/Dator/Documents/R_HW/732A37/R/labreport2.rmd", documentation = 0)), eval = FALSE}
-```
+## NA

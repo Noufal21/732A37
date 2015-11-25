@@ -9,7 +9,7 @@ data3 <- read.delim(www3, header = FALSE, sep="")
 colnames(data) <- c("NAT","100m(s)","200m(s)","400m(s)",
                     "800m(min)","1500m(min)","3000m(min)","Mara(min)")
 colnames(data2) <- c("Tail length","Wing length")
-colnames(data3) <- c("MaxBreath","BasHeight","BasLength","NasHeight","Time period")
+colnames(data3) <- c("MaxBreath","BasHeight","BasLength","NasHeight","TimePeriod")
 # head(data)
 # head(data2)
 # head(data3)
@@ -24,7 +24,9 @@ centerdata <- as.matrix(centerdata)
 covarianceadjusteddists <-c()
 
 for(i in 1:dim(data)[1]){
-  covarianceadjusteddists <- c( covarianceadjusteddists, sqrt(centerdata[i,] %*% solve(covmatr) %*% centerdata[i,]))
+  covarianceadjusteddists <- c( covarianceadjusteddists,
+                                sqrt(centerdata[i,] %*% solve(covmatr) %*%
+                                centerdata[i,]))
 }
 
 #We calculate the chi-square test statistic for seven degrees of freedom
@@ -109,3 +111,94 @@ points(col_mu2[1],col_mu2[2],cex=2,pch="+")
 #, unusually for birds, it is the females that are larger than the males
 
 
+
+old <- data3[1:30,1:4]
+oldmu <- colMeans(old)
+mid <- data3[31:60,1:4]
+midmu <- colMeans(mid)
+new <- data3[61:90,1:4]
+newmu <- colMeans(new)
+
+totmu <- colMeans(data3[,1:4])
+
+betwold<-tcrossprod((oldmu - totmu),(oldmu - totmu))
+betwmid<-tcrossprod((midmu - totmu),(midmu - totmu))
+betwnew<-tcrossprod((newmu - totmu),(newmu - totmu))
+
+Sold <- var(old)
+Smid <- var(mid)
+Snew <- var(new)
+
+
+W <- 29 * (Sold + Smid + Snew)
+B <- 30 * (betwold + betwmid + betwnew)
+WilkLambda <- det(W) / det(B + W)
+
+weirdexpr <- ((90-4-2)/(4)) * (1-sqrt(WilkLambda)) / sqrt(WilkLambda)
+limit <- qf(0.95,8,168)
+paste("Wilks Lambda:",signif(WilkLambda,3))
+cat("Test statistic value for three groups and one or more variables for\n",
+      "this Wilk's Lambda:",signif(weirdexpr,3))
+cat("F-statistic for above situation at 95% confidence level:",
+    signif(limit,3))
+#Weirdexpr is larger than limit (2.05 > 1.99) so we 
+#reject null hypothesis at 95% s
+#That all treatments are zero.
+
+p <- 4
+g <- 3
+m <- p * g * (g - 1) / 2
+xbarmatr <- rbind(oldmu,midmu,newmu)
+
+tterm <- -qt(0.05/(2 * m),87)
+wterms <- sqrt(diag(W)*(2/30)*(1/87))
+
+diff31 <- xbarmatr[3,] - xbarmatr[1,]
+diff32 <- xbarmatr[3,] - xbarmatr[2,]
+diff21 <- xbarmatr[2,] - xbarmatr[1,]
+
+simulconfints31 <-c()
+simulconfints32 <-c()
+simulconfints21 <-c()
+for(i in 1:4){
+  simulconfints31[c(i,i+4)] <- c(diff31[i]-tterm*wterms[i],
+                                 diff31[i]+tterm*wterms[i])
+  simulconfints32[c(i,i+4)] <- c(diff32[i]-tterm*wterms[i],
+                                 diff32[i]+tterm*wterms[i])
+  simulconfints21[c(i,i+4)] <- c(diff21[i]-tterm*wterms[i],
+                                 diff21[i]+tterm*wterms[i])
+}
+
+for(i in 1:4){
+  print(paste("Simultaneous 95% confidence intervals for treatment differences",
+        "between periods 3 and 1 for variable",i,": (",
+        signif(simulconfints31[i],3),",",signif(simulconfints31[i+4],3),")"))
+  print(paste("Simultaneous 95% confidence intervals for treatment differences",
+              "between periods 3 and 2 for variable",i,": (",
+              signif(simulconfints32[i],3),",",signif(simulconfints32[i+4],3),")"))
+  print(paste("Simultaneous 95% confidence intervals for treatment differences",
+              "between periods 2 and 1 for variable",i,": (",
+              signif(simulconfints21[i],3),",",signif(simulconfints21[i+4],3),")"))
+}
+
+Y <- as.matrix(data3[,-5])
+
+fit1 <- manova(Y ~ as.factor(data3$TimePeriod), subset=as.factor(data3$TimePeriod) %in% c(1,2))
+summary(fit1, test="Hotelling-Lawley")
+
+
+fit2 <- manova(Y ~ as.factor(data3$TimePeriod), subset=as.factor(data3$TimePeriod) %in% c(1,3))
+summary(fit2, test="Hotelling-Lawley")
+
+fit3 <- manova(Y ~ as.factor(data3$TimePeriod), subset=as.factor(data3$TimePeriod) %in% c(2,3))
+summary(fit3, test="Hotelling-Lawley")
+
+
+
+colnames(data3)
+my_manova <- manova(cbind(MaxBreath,  BasHeight,  BasLength,  NasHeight) ~ as.factor(TimePeriod), data=data3)
+summary(my_manova)
+# P value suggest that the skull differ across these time periods
+
+summary.aov(my_manova)
+# MaxBreath and BasLength differ
