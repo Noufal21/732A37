@@ -1,0 +1,180 @@
+---
+title: "Computer Lab 3"
+author: "Thomas Zhang"
+date: 2015-11-24
+output: 
+  pdf_document: 
+    fig_height: 4
+---
+
+## Assignment 1
+
+This is the sample correlation matrix for the womens national track records data provided, its eigenvalues and its eigenvectors.
+
+```{r,echo=FALSE}
+www = "http://www.ida.liu.se/~732A37/T1-9.dat"
+data <- read.delim(www, header = FALSE, sep="\t")
+colnames(data) <- c("NAT","100m(s)","200m(s)","400m(s)",
+                    "800m(min)","1500m(min)","3000m(min)","Mara(min)")
+#head(data)
+nations <- as.character(data[,1])
+data <- data[,-1]
+col_mu <- colMeans(data)
+col_sigmasquared<-apply(data,2,var)
+
+corrmatr <- cor(data)
+corrmatr
+eigenstuff <-eigen(corrmatr)
+eigenstuff
+```
+
+We perform a principal component analysis (PCA) on this data. Particularly, we are interested in the first two principal components (PCs). The first two PCs and their correlations with the seven  standardized data variables (running distances) and the percentage of total sample variance explained by these two PCs, each and cumulatively, are shown below.
+
+```{r, echo=FALSE}
+data2 <- scale(data)
+std_lambdas <- eigen(cor(data2))$values #Same as eigenstuff$values
+pcastuff <- prcomp(data2,center = FALSE,scale.=FALSE)
+
+pcastuff$rotation[,1:2]
+
+pccorrstdvars <- matrix(0,nrow=2,ncol=7)
+
+for(i in 1:2){
+  for(j in 1:7){
+    pccorrstdvars[i,j] <- pcastuff$rotation[j,i] * sqrt(std_lambdas[i]) 
+  }
+}
+paste("Correlations between the two first PCs and the standardized data variables:")
+rownames(pccorrstdvars) <- c("PC1","PC2")
+colnames(pccorrstdvars) <- c("100m(s)","200m(s)","400m(s)",
+                       "800m(min)","1500m(min)","3000m(min)","Mara(min)")
+pccorrstdvars
+paste("Percent of total sample variance explained by first PC:",
+      sprintf("%2.3f",eigenstuff$values[1]/sum(eigenstuff$values)*100))
+paste("Percent of total sample variance explained by second PC:",
+      sprintf("%2.3f",eigenstuff$values[2]/sum(eigenstuff$values)*100))
+paste("Cumulative Percent of total sample variance explained by first two PCs:",
+      sprintf("%2.3f",(eigenstuff$values[2]+eigenstuff$values[1])
+              /sum(eigenstuff$values)*100))
+```
+
+We see that more than 90% of total sample variance can be explained by the first two PCs. We also see that the first PC correlates with all standardized data variables equally, and can be seen as a measure of speediness (or fastidity) of a nations runners. In other words, the athletic excellence of a nation is measured by the first PC. The second PC has correlations with data which favors good long distance running records and penalizes good short distance running records. This can be interpreted as a measure of how much better a country is at long distance running than at short distance running.
+
+Let us plot the PC1-PC2 score plot of the nations and find out which nations are the most excellent in terms of womens track records (highest PC1 value).
+
+```{r,echo=FALSE}
+pcscores <- data.frame(PC1=pcastuff$x[,1], PC2=pcastuff$x[,2])
+plot(pcscores,pch="",main=c("Score plot for PC1 and PC2",
+     "of national track records for women"))
+text(pcscores[,1],pcscores[,2],labels=nations,cex=0.7)
+```
+
+It looks as if big countries, such as USA,Germany,Russia,China and France produce the most excellent female runners. This conclusion coincides with intuitive explanations that factors such as the size of the talent pool, the athletics programmes available and resources available leads to good results for these large and developed countries.
+
+## Assignment 2
+
+### Maximum Liklihood method
+
+We want to create a factor model for the very same data set. Let us start out with factor analysis of the data using the Maximum Likelihood method used in the built-in R function $\tt{factanal}$. Like in PCA, we want two factors which can help us explain the data sample variance.
+
+```{r,echo=FALSE}
+MLfactanal <- factanal(data,factors = 2,scores = "Bartlett")
+MLfactanal
+```
+
+The loadings tell us that Factor 1 focuses on performance records of longer distances while Factor 2 focuses on performance records of shorter distances. This long-short distance performance focus appears almost symmetric, and this could be why we notice that the two factors explain about the same fraction of the sample variance. Together they explain about 90% of sample variance. We plot the factor scores (obtained by the weighted least squares method) and see if there are any outliers.
+
+```{r,echo=FALSE}
+plot(MLfactanal$scores, pch="",main="Factor scores for ML factor analysis")
+text(MLfactanal$scores, labels=nations,cex=0.7)
+```
+
+Yes, it appears Samoa is a big outlier in factor 1, which means that Samoa has bad performance in longer distance records. Analogously, North Korea and Cook islands are outliers in factor 2, and thus are bad at shorter distance records.
+
+Maximum Liklihood estimation of loadings is adequate whenever the data is approximately multivariate normally distributed. A few quick Q-Q plots indicate that that is the case with womens national track records data, especially for the shorter distances.(corresponding to the first Q-Q-plots)
+
+```{r,echo=FALSE,fig.height=7}
+par(mfrow=c(2,2))
+for(i in 1:7){
+  qqnorm(data[,i])
+  qqline(data[,i])
+}
+par(mfrow=c(1,1))
+```
+
+
+### Principal Components method - with sample Covariance matrix $\mathbf{S}$
+Now we decide to do the factor analyisis by working with the sample covariance matrix $\mathbf{S}$ and estimate using the principal components method.
+
+```{r,echo=FALSE}
+eigenthings <- eigen(cov(data))
+estsqrteigenvalS <- sqrt(eigenthings$values)
+paste("percentage of sample variance explained by first common factor:",
+      signif(eigenthings$values[1] / sum(diag(cov(data))),3))
+```
+
+We observe that the first eigenvalue of $\mathbf{S}$ explains almost all of the sample variance, so our factor model is only going to have one common factor.
+
+```{r,echo=FALSE}
+L <- estsqrteigenvalS[1] * eigenthings$vectors[,1]
+L <- as.matrix(L,drop=FALSE)
+paste("loadings:")
+L
+loadings <- L %*% t(L)
+communalities <- diag(loadings)
+paste("communalities:")
+communalities
+specificfactors <- diag(x=diag(cov(data) - loadings))
+paste("Uniquenesses:")
+diag(specificfactors)
+residualmatr <- cov(data) - loadings - specificfactors
+paste("Residual Matrix:")
+residualmatr
+
+centereddata <- t(as.matrix(data - col_mu))
+scores <- as.vector(solve(t(L) %*% L) %*% t(L) %*% centereddata)
+scores <- as.data.frame(cbind(scores,rep(0,length(scores))))
+plot(scores,pch="",ylim=c(-0.1,0.1),main="Factor 1 score plot for sample covariance matrix S",
+     ylab="",xlab="Factor 1 score")
+text(scores,labels=nations,cex=0.7)
+```
+
+The plot is not ideal, but One can discern at least that Great Britain and USA score highest and Cook Island and Samoa score lowest. An inspection of the loadings show that the score is based almost solely on the result of the marathon distance, the records of which exhibit the largest sample variance. One notices that the uniquenesses are highest for the distance records which have the highest absolute values (third and seventh distances), regardless of the time unit used. This is a weakness of using the sample covariance matrix. The residual Matrix looks ok specific factors are inferred to be fairly negligable and this model appears to be adequate. 
+
+### Principal Components method - with sample Correlation matrix $\mathbf{R}$
+
+We repeat the factor analysis just done, only now we replace sample covariance matrix $\mathbf{S}$ with sample correlation matrix $\mathbf{R}$.
+
+```{r,echo=FALSE}
+estsqrteigenvalS2 <- sqrt(eigenstuff$values)
+paste("percentage of sample correlation explained by first common factor:",
+      signif(eigenstuff$values[1] / 7 * 100,3))
+paste("percentage of sample correlation explained by second common factor:",
+      signif(eigenstuff$values[2] / 7 * 100,3))
+```
+
+We see that the first two common factors are sufficient to explain most of the sample correlation. We thus proceed with a factor analysis using two common factors.
+
+```{r, echo=FALSE}
+L2 <- estsqrteigenvalS2[1:2] * eigenstuff$vectors[,1:2]
+L2 <- as.matrix(L2,drop=FALSE)
+paste("loadings:")
+L2
+loadings2 <- L2 %*% t(L2)
+specificfactors2 <- diag(x=diag(corrmatr - loadings2))
+paste("Uniquenesses:")
+diag(specificfactors2)
+residualmatr2 <- corrmatr - loadings2 - specificfactors2
+paste("Residual Matrix:")
+residualmatr2
+scores2 <- (solve(t(L2) %*% L2) %*% t(L2) %*% t(data2))
+plot(scores2[1,],scores2[2,], pch = "",main="Factor score plot for sample correlation matrix R",
+     xlab="Factor 1",ylab="Factor 2")
+text(scores2[1,],scores2[2,],labels=nations,cex=0.7)
+```
+
+I think something is wrong, since we have negative uniquenesses. However, the plot looks very similar to the principal components analyisis score plot, and the two common factors scores have similar interpretations as the PC scores. (although one axis is reversed). The model is adequate for the same reasons as in the previous case.
+
+### Appendix - R-Code
+```{r code=readLines(knitr::purl("C:/Users/Dator/Documents/R_HW/732A37/R/labreport3.rmd", documentation = 0)), eval = FALSE}
+```
