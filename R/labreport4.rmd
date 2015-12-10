@@ -9,7 +9,7 @@ output:
 
 ## Assignment 1
 
-Given the Andrew and Herzberg diabetic and non-diabetic data set we want to test whether there is any correlation between the primary and secondary variables at the 5% significance level. In order to do this we set null hypothesis to $\mathbf{\Sigma_{12}} = 0$ and perform a Chi squared test on the likelihood ratio statistic at $pq$ degrees of freedom.
+Given the Andrew and Herzberg diabetic and non-diabetic data set we want to test whether there is any correlation between the primary and secondary variables at the 5% significance level. In order to do this we set null hypothesis to $H_{0} = \mathbf{\Sigma_{12}} = 0$ and perform a Chi squared test on the likelihood ratio test statistic with Bartlett correction at $pq$ degrees of freedom, as described in section 10.6 of the Johnson & Wichern course textbook.
 
 ```{r,echo=FALSE}
 smpcovmatr <- matrix(0,5,5)
@@ -40,7 +40,7 @@ matrsqrtinv <- function(A){
   vals <- eig$values
   result <- matrix(0,nrow=ncol(vects),ncol=ncol(vects))
   for(i in 1:length(vals)){
-    result <- result + 1/sqrt(vals[i]) * crossprod(t(vects[,i]),vects[,i])
+    result <- result + 1/sqrt(vals[i]) * crossprod(t(vects[,i]),t(vects[,i]))
   }
   return(result)
 }
@@ -59,13 +59,21 @@ dmat <- diag(x=sqrt(c( 1106,2382,2136,.016,70.56)))
 # Self-correlations
 selfcorrs1 <- vcoefs %*% s11 %*% solve(dmat[1:3,1:3])
 selfcorrs2 <- ucoefs %*% s22 %*% solve(dmat[4:5,4:5])
+colnames(selfcorrs1) <- c("Glucose intolerance","Insulin response to oral glucose",
+                          "Insulin resistance")
+colnames(selfcorrs2) <- c("Relative weight","Fasting plasma glucose")
+selfcorrs1 <- selfcorrs1[1:2,]
+rownames(selfcorrs1) <- c("U1","U2")
+rownames(selfcorrs2) <- c("V1","V2")
 
 #Let us say obsvs are standardized
 vcoefs <- vcoefs %*% dmat[1:3,1:3]
+vcoefs <- vcoefs[1:2,]
 ucoefs <- ucoefs %*% dmat[4:5,4:5]
-colnames(vcoefs) <- c("X1","X2","X3")
+colnames(vcoefs) <- c("Glucose intolerance","Insulin response to oral glucose",
+                      "Insulin resistance")
 rownames(vcoefs) <- c("First","Second")
-colnames(ucoefs) <- c("X4","X5")
+colnames(ucoefs) <- c("Relative weight","Fasting plasma glucose")
 rownames(ucoefs) <- c("First","Second")
 
 #reject criterion -(n-1 - 1/2 (p + q + 1))ln PI(1- rho^2) > chisq_pq(alpha)
@@ -81,29 +89,48 @@ tryingtobeat2 <- const * logfactor2
 nextobeat <- qchisq(0.95,2)
 ```
 
+```{r,echo=FALSE}
+paste("Bartlett likelihood ratio test statistic for all canonical correlations zero:",
+      round(tryingtobeat,3))
+paste("Chi square statistic value at 5% significance level, 6 degrees of freedom:",round(beatthis,3))
+```
 
+We see that the liklihood ratio test statistic is greater than the Chi square test value at 5% significance level, so we reject the null hypothesis $H_{0}$ that $\mathbf{\Sigma_{12}}$ is zero.
+
+We can extend our testing by examining the "significance" of the individual canonical correlations. Since we in this case only have two canonical correlations we set as null hypothesis $H_{0}$ that the largest canonical correlation is non-zero and the second largest canonical correlation is zero. Now we test this new null hypothesis as before.
+
+```{r,echo=FALSE}
+paste("Bartlett likelihood ratio test statistic for second canonical correlation zero:",
+      round(tryingtobeat2,3))
+paste("Chi square statistic value at 5% significance level, 2 degrees of freedom:",round(nextobeat,3))
+```
+
+It is observed that the liklihood ratio test statistic is smaller than the Chi square test value at 5% significance level, so we cannot reject the null hypothesis $H_{0}$. In summary, there exists an association between primary and secondary variables, but this association is only significant at the 5% significance level for the first pair out of two pairs of canonical variates.
+
+Now, the squared canonical correlations indicate how large a fraction of the variance in the primary variables can be explained by the variance in the secondary variables, and vice versa. For our first canonical correlation:
 
 ```{r, echo=FALSE}
 paste("First canonical correlation:",signif(sqrt(ees$values[1]),3))
-paste("Second canonical correlation:",signif(sqrt(ees$values[2]),3))
+paste("First canonical correlation squared:",signif(ees$values[1],3))
+
+```
+
+The canonical variates themselves, in the first canonical correlation, seem to mainly represent a negative correlation between insulin resistance and relative weight, and a positive correlation between insulin response to oral glucose and relative weight. Further, it can be seen that V1 is mostly correlates with the negative of relative weight, while U1 mainly correlates with positive of insulin resistance.
+
+```{r,echo=FALSE}
 paste("Coefficients for canonical variable U for standardized X:")
 vcoefs
 paste("Coefficients for canonical variable V for standardized X:")
 ucoefs
+paste("correlations between Ui and its standardized components:")
+selfcorrs1
+paste("correlations between Vi and its standardized components:")
+selfcorrs2
 ```
 
-
-
-```{r,echo=FALSE}
-pcscores <- data.frame(PC1=pcastuff$x[,1], PC2=pcastuff$x[,2])
-plot(pcscores,pch="",main=c("Score plot for PC1 and PC2",
-     "of national track records for women"))
-text(pcscores[,1],pcscores[,2],labels=nations,cex=0.7)
-```
-
-
+Since U1 and V1 only correlates strongly with one of the standardized variables each, I can not say that they are good summary measures of their respective data sets. In particular, glucose intolerance and fasting plasma glucose variables have little to no influence on the first, and only significant canonical correlation. Furthermore, only 26% or so of the variance in U1 can be explained by the variance in V1. There is also the questionable correlation that relative weight is negatively correlated with insulin resistance. (should it not be positive?). In conclusion, this canonical correlation analysis is not very good.
 
 
 ### Appendix - R-Code
-```{r code=readLines(knitr::purl("C:/Users/Dator/Documents/R_HW/732A37/R/labreport4.rmd", documentation = 0)), eval = FALSE}
+```{r code=readLines(knitr::purl("D:/R_HW/732A37/R/labreport4.rmd", documentation = 0)), eval = FALSE}
 ```

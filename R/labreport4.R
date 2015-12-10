@@ -33,8 +33,7 @@ matrsqrtinv <- function(A){
 
 thatmatr <- matrsqrtinv(s22) %*% t(s12) %*% solve(s11) %*% s12 %*% matrsqrtinv(s22)
 ees <- eigen(thatmatr)
-paste("First canonical correlation:",signif(sqrt(ees$values[1]),3))
-paste("Second canonical correlation:",signif(sqrt(ees$values[2]),3))
+
 
 ffs <- eigen(matrsqrtinv(s11) %*% (s12) %*% solve(s22) %*% t(s12) %*% matrsqrtinv(s11))
 thosevects <- ffs$vectors
@@ -46,18 +45,23 @@ dmat <- diag(x=sqrt(c( 1106,2382,2136,.016,70.56)))
 # Self-correlations
 selfcorrs1 <- vcoefs %*% s11 %*% solve(dmat[1:3,1:3])
 selfcorrs2 <- ucoefs %*% s22 %*% solve(dmat[4:5,4:5])
+colnames(selfcorrs1) <- c("Glucose intolerance","Insulin response to oral glucose",
+                          "Insulin resistance")
+colnames(selfcorrs2) <- c("Relative weight","Fasting plasma glucose")
+selfcorrs1 <- selfcorrs1[1:2,]
+rownames(selfcorrs1) <- c("U1","U2")
+rownames(selfcorrs2) <- c("V1","V2")
 
 #Let us say obsvs are standardized
 vcoefs <- vcoefs %*% dmat[1:3,1:3]
+vcoefs <- vcoefs[1:2,]
 ucoefs <- ucoefs %*% dmat[4:5,4:5]
-colnames(vcoefs) <- c("X1","X2","X3")
-rownames(vcoefs) <- c("First","Second","Irrelevant")
-colnames(ucoefs) <- c("X4","X5")
+colnames(vcoefs) <- c("Glucose intolerance","Insulin response to oral glucose",
+                      "Insulin resistance")
+rownames(vcoefs) <- c("First","Second")
+colnames(ucoefs) <- c("Relative weight","Fasting plasma glucose")
 rownames(ucoefs) <- c("First","Second")
-paste("Coefficients for canonical variable U for standardized X:")
-vcoefs
-paste("Coefficients for canonical variable V for standardized X:")
-ucoefs
+
 #reject criterion -(n-1 - 1/2 (p + q + 1))ln PI(1- rho^2) > chisq_pq(alpha)
 p <- 2
 q <- 3
@@ -69,3 +73,21 @@ beatthis <- qchisq(0.95,6)
 logfactor2 <- log((1- ees$values[2]))
 tryingtobeat2 <- const * logfactor2
 nextobeat <- qchisq(0.95,2)
+paste("Bartlett likelihood ratio test statistic for all canonical correlations zero:",
+      round(tryingtobeat,3))
+paste("Chi square statistic value at 5% significance level, 6 degrees of freedom:",round(beatthis,3))
+paste("Bartlett likelihood ratio test statistic for second canonical correlation zero:",
+      round(tryingtobeat2,3))
+paste("Chi square statistic value at 5% significance level, 2 degrees of freedom:",round(nextobeat,3))
+paste("First canonical correlation:",signif(sqrt(ees$values[1]),3))
+paste("First canonical correlation squared:",signif(ees$values[1],3))
+
+paste("Coefficients for canonical variable U for standardized X:")
+vcoefs
+paste("Coefficients for canonical variable V for standardized X:")
+ucoefs
+paste("correlations between Ui and its standardized components:")
+selfcorrs1
+paste("correlations between Vi and its standardized components:")
+selfcorrs2
+## NA
