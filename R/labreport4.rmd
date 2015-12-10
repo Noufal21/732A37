@@ -1,3 +1,17 @@
+---
+title: "Computer Lab 4"
+author: "Thomas Zhang"
+date: 2015-12-09
+output: 
+  pdf_document: 
+    fig_height: 4
+---
+
+## Assignment 1
+
+Given the Andrew and Herzberg diabetic and non-diabetic data set we want to test whether there is any correlation between the primary and secondary variables at the 5% significance level. In order to do this we set null hypothesis to $\mathbf{\Sigma_{12}} = 0$ and perform a Chi squared test on the likelihood ratio statistic at $pq$ degrees of freedom.
+
+```{r,echo=FALSE}
 smpcovmatr <- matrix(0,5,5)
 diag(smpcovmatr) <- c( 1106,2382,2136,.016,70.56)
 diag2 <- c(396.7,1143,2.189,.216)
@@ -33,8 +47,7 @@ matrsqrtinv <- function(A){
 
 thatmatr <- matrsqrtinv(s22) %*% t(s12) %*% solve(s11) %*% s12 %*% matrsqrtinv(s22)
 ees <- eigen(thatmatr)
-paste("First canonical correlation:",signif(sqrt(ees$values[1]),3))
-paste("Second canonical correlation:",signif(sqrt(ees$values[2]),3))
+
 
 ffs <- eigen(matrsqrtinv(s11) %*% (s12) %*% solve(s22) %*% t(s12) %*% matrsqrtinv(s11))
 thosevects <- ffs$vectors
@@ -54,10 +67,7 @@ colnames(vcoefs) <- c("X1","X2","X3")
 rownames(vcoefs) <- c("First","Second")
 colnames(ucoefs) <- c("X4","X5")
 rownames(ucoefs) <- c("First","Second")
-paste("Coefficients for canonical variable U for standardized X:")
-vcoefs
-paste("Coefficients for canonical variable V for standardized X:")
-ucoefs
+
 #reject criterion -(n-1 - 1/2 (p + q + 1))ln PI(1- rho^2) > chisq_pq(alpha)
 p <- 2
 q <- 3
@@ -69,3 +79,31 @@ beatthis <- qchisq(0.95,6)
 logfactor2 <- log((1- ees$values[2]))
 tryingtobeat2 <- const * logfactor2
 nextobeat <- qchisq(0.95,2)
+```
+
+
+
+```{r, echo=FALSE}
+paste("First canonical correlation:",signif(sqrt(ees$values[1]),3))
+paste("Second canonical correlation:",signif(sqrt(ees$values[2]),3))
+paste("Coefficients for canonical variable U for standardized X:")
+vcoefs
+paste("Coefficients for canonical variable V for standardized X:")
+ucoefs
+```
+
+
+
+```{r,echo=FALSE}
+pcscores <- data.frame(PC1=pcastuff$x[,1], PC2=pcastuff$x[,2])
+plot(pcscores,pch="",main=c("Score plot for PC1 and PC2",
+     "of national track records for women"))
+text(pcscores[,1],pcscores[,2],labels=nations,cex=0.7)
+```
+
+
+
+
+### Appendix - R-Code
+```{r code=readLines(knitr::purl("C:/Users/Dator/Documents/R_HW/732A37/R/labreport4.rmd", documentation = 0)), eval = FALSE}
+```
